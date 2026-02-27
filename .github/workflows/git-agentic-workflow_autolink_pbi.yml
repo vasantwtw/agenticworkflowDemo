@@ -33,111 +33,21 @@ jobs:
             exit 0
           fi
       
-      - name: Link PBI to PR (Azure DevOps)
+      - name: Link PBI to PR using GitHub Azure Boards Integration
         if: steps.extract-pbi.outputs.pbi_number
-        id: link-pbi
-        env:
-          AZURE_DEVOPS_ORG: ${{ secrets.AZURE_DEVOPS_ORG }}
-          AZURE_DEVOPS_PROJECT: ${{ secrets.AZURE_DEVOPS_PROJECT }}
-          AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
-          PBI_NUMBER: ${{ steps.extract-pbi.outputs.pbi_number }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO_ID: ${{ github.repository }}
-        run: |
-          if [ -z "$AZURE_DEVOPS_PAT" ]; then
-            echo "⚠️ AZURE_DEVOPS_PAT not configured. Skipping Azure DevOps integration."
-            echo "link_status=skipped" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # Encode PAT for basic auth
-          AUTH=$(echo -n ":${AZURE_DEVOPS_PAT}" | base64)
-          
-          # Azure DevOps API endpoint
-          API_URL="https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems/${PBI_NUMBER}?api-version=7.0"
-          
-          # Check if work item exists
-          echo "Checking if Work Item #${PBI_NUMBER} exists..."
-          RESPONSE=$(curl -s -w "\n%{http_code}" -H "Authorization: Basic ${AUTH}" -H "Content-Type: application/json" "${API_URL}")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-          
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "link_status=not_found" >> $GITHUB_OUTPUT
-            echo "⚠️ Work Item #${PBI_NUMBER} not found (HTTP ${HTTP_CODE})"
-            exit 0
-          fi
-          
-          echo "✅ Work Item #${PBI_NUMBER} found"
-          
-          # Create PR link URL for Azure DevOps
-          PR_URL="https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
-          
-          # Add relation to the work item
-          PATCH_URL="https://dev.azure.com/${AZURE_DEVOPS_ORG}/${AZURE_DEVOPS_PROJECT}/_apis/wit/workitems/${PBI_NUMBER}?api-version=7.0"
-          
-          PATCH_BODY='[
-            {
-              "op": "add",
-              "path": "/relations/-",
-              "value": {
-                "rel": "Hyperlink",
-                "url": "'"${PR_URL}"'",
-                "attributes": {
-                  "comment": "GitHub Pull Request #'"${PR_NUMBER}"'"
-                }
-              }
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pbiNumber = '${{ steps.extract-pbi.outputs.pbi_number }}';
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `AB#${pbiNumber}\n\n✅ Successfully linked Work Item AB#${pbiNumber} to this Pull Request`
+              });
+              console.log(`✅ Successfully linked Work Item AB#${pbiNumber} to PR #${context.issue.number}`);
+            } catch (error) {
+              console.error('❌ Failed to post comment:', error);
+              core.setFailed(`Unable to post comment: ${error.message}`);
             }
-          ]'
-          
-          echo "Linking Work Item #${PBI_NUMBER} to PR #${PR_NUMBER}..."
-          LINK_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
-            -H "Authorization: Basic ${AUTH}" \
-            -H "Content-Type: application/json-patch+json" \
-            -d "${PATCH_BODY}" \
-            "${PATCH_URL}")
-          
-          LINK_HTTP_CODE=$(echo "$LINK_RESPONSE" | tail -n1)
-          
-          if [ "$LINK_HTTP_CODE" = "200" ]; then
-            echo "link_status=success" >> $GITHUB_OUTPUT
-            echo "✅ Successfully linked Work Item #${PBI_NUMBER} to PR #${PR_NUMBER}"
-          else
-            echo "link_status=error" >> $GITHUB_OUTPUT
-            echo "❌ Failed to link Work Item (HTTP ${LINK_HTTP_CODE})"
-          fi
-      
-      - name: Comment on PR - Success
-        if: steps.link-pbi.outputs.link_status == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ Successfully linked Work Item #${{ steps.extract-pbi.outputs.pbi_number }} to this Pull Request'
-            })
-      
-      - name: Comment on PR - Not Found
-        if: steps.link-pbi.outputs.link_status == 'not_found'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '⚠️ Work Item #${{ steps.extract-pbi.outputs.pbi_number }} not found. Please verify the PBI number in your branch name.'
-            })
-      
-      - name: Comment on PR - Error
-        if: steps.link-pbi.outputs.link_status == 'error'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '❌ Unable to link Work Item #${{ steps.extract-pbi.outputs.pbi_number }}. Please check Azure DevOps permissions and try again.'
-            })

@@ -2,7 +2,8 @@
 description: |
   This workflow automatically links Product Backlog Items (PBIs) to Pull Requests
   when the PR branch follows naming conventions like feature/405604-Description or
-  bug/strategic-2/405604-Description. It extracts the PBI number and creates the link.
+  bug/strategic-2/405604-Description. It extracts the PBI number and creates the link
+  using GitHub's Azure Boards integration (AB#).
 
 on:
   pull_request:
@@ -14,7 +15,7 @@ on:
 permissions:
   contents: read
   issues: read
-  pull-requests: read
+  pull-requests: write
 
 network: defaults
 
@@ -33,7 +34,7 @@ engine: copilot
 
 # Auto-Link PBI to Pull Request
 
-Automatically link Azure DevOps Product Backlog Items (PBIs) to Pull Requests based on branch naming conventions.
+Automatically link Azure DevOps Product Backlog Items (PBIs) to Pull Requests based on branch naming conventions using GitHub's Azure Boards integration.
 
 ## Branch Naming Patterns
 
@@ -65,20 +66,21 @@ When this workflow is triggered by a pull request event:
 3. **Extract the PBI number** from the branch name (the numeric portion)
    - Example: From `feature/405604-AgenticWorkFlowToLinkPBI`, extract `405604`
 
-4. **Link the PBI to the PR** using Azure DevOps API
-   - Retrieve the work item by PBI number
-   - Create an artifact link between the work item and this pull request
-   - Handle errors gracefully if PBI doesn't exist
+4. **Link the PBI to the PR** using GitHub's Azure Boards integration
+   - Post a comment with the format: `AB#{PBI-NUMBER}`
+   - GitHub will automatically create the link to Azure DevOps
+   - Example: `AB#405604`
 
 5. **Post a comment** on the pull request
-   - Success: `✅ Successfully linked Work Item #[PBI-NUMBER] to this Pull Request`
-   - Not found: `⚠️ Work Item #[PBI-NUMBER] not found. Please verify the PBI number.`
-   - Error: `❌ Unable to link Work Item. Please check permissions.`
+   - Success: `✅ Successfully linked Work Item AB#[PBI-NUMBER] to this Pull Request`
+   - Pattern match failure: Skip silently
+   - Error: `❌ Unable to post comment. Please check permissions.`
 
 ## Expected Behavior
 
-- ✅ Auto-link when branch follows naming convention
+- ✅ Auto-link when branch follows naming convention using AB# syntax
 - ✅ Provide feedback via PR comments
 - ✅ Handle errors gracefully
 - ✅ Skip non-matching branches silently
+- ✅ Leverage GitHub's native Azure Boards integration
 
