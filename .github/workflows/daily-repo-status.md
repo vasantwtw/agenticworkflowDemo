@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   issues: read
+  models: read
   pull-requests: read
 
 network: defaults
