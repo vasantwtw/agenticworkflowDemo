@@ -15,7 +15,7 @@ on:
 permissions:
   contents: read
   issues: read
-  pull-requests: write
+  pull-requests: read
 
 network: defaults
 
@@ -66,21 +66,27 @@ When this workflow is triggered by a pull request event:
 3. **Extract the PBI number** from the branch name (the numeric portion)
    - Example: From `feature/405604-AgenticWorkFlowToLinkPBI`, extract `405604`
 
-4. **Link the PBI to the PR** using GitHub's Azure Boards integration
-   - Post a comment with the format: `AB#{PBI-NUMBER}`
-   - GitHub will automatically create the link to Azure DevOps
-   - Example: `AB#405604`
+4. **Post a comment with AB# syntax** to trigger GitHub's Azure Boards integration
+   - Comment format: `AB#{PBI-NUMBER}`
+   - GitHub will automatically create the link to Azure DevOps when Azure Boards app is installed
+   - Example comment: `AB#405604`
 
-5. **Post a comment** on the pull request
-   - Success: `✅ Successfully linked Work Item AB#[PBI-NUMBER] to this Pull Request`
-   - Pattern match failure: Skip silently
-   - Error: `❌ Unable to post comment. Please check permissions.`
+5. **Include success message** in the same comment
+   - Format: `✅ Linked Azure DevOps Work Item AB#{PBI-NUMBER} to this Pull Request`
+   - GitHub's Azure Boards integration will convert `AB#405604` into a clickable link
+   - If comment fails: `❌ Unable to post comment. Please check permissions.`
 
 ## Expected Behavior
 
 - ✅ Auto-link when branch follows naming convention using AB# syntax
-- ✅ Provide feedback via PR comments
-- ✅ Handle errors gracefully
+- ✅ Post single comment with AB# reference
+- ✅ GitHub Azure Boards app converts AB# to clickable link automatically
+- ✅ Handle comment posting errors gracefully
 - ✅ Skip non-matching branches silently
-- ✅ Leverage GitHub's native Azure Boards integration
+
+## Prerequisites
+
+- **GitHub Azure Boards App**: Must be installed and configured for the repository
+- **Permissions**: Workflow requires `pull-requests: write` permission (already configured)
+- **No ADO Credentials Needed**: GitHub's native integration handles the linking - no tokens or API credentials required
 

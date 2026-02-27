@@ -23,9 +23,10 @@
 #
 # This workflow automatically links Product Backlog Items (PBIs) to Pull Requests
 # when the PR branch follows naming conventions like feature/405604-Description or
-# bug/strategic-2/405604-Description. It extracts the PBI number and creates the link.
+# bug/strategic-2/405604-Description. It extracts the PBI number and creates the link
+# using GitHub's Azure Boards integration (AB#).
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"874bea8e2c33d1b9cb40860c4bc422e58cb5b07ad408437afe1570e227361912","compiler_version":"v0.50.6"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"146cd9dda02955996ff011282b47d4bc50bfce06cb0e354257c675bfe5e54a5a","compiler_version":"v0.50.6"}
 
 name: "Auto-Link PBI to Pull Request"
 "on":
@@ -824,7 +825,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           WORKFLOW_NAME: "Auto-Link PBI to Pull Request"
-          WORKFLOW_DESCRIPTION: "This workflow automatically links Product Backlog Items (PBIs) to Pull Requests\nwhen the PR branch follows naming conventions like feature/405604-Description or\nbug/strategic-2/405604-Description. It extracts the PBI number and creates the link."
+          WORKFLOW_DESCRIPTION: "This workflow automatically links Product Backlog Items (PBIs) to Pull Requests\nwhen the PR branch follows naming conventions like feature/405604-Description or\nbug/strategic-2/405604-Description. It extracts the PBI number and creates the link\nusing GitHub's Azure Boards integration (AB#)."
           HAS_PATCH: ${{ steps.collect_output.outputs.has_patch }}
         with:
           script: |
